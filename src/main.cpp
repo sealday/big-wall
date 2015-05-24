@@ -27,6 +27,7 @@ GLuint vaos[VAO_NUMBER], vbos[VBO_NUMBER];
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
+bool keys[1024];
 
 GLint modelLoc, viewLoc, projLoc;
 
@@ -98,6 +99,11 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
+
+    if (action == GLFW_PRESS)
+        keys[key] = true;
+    else if (action == GLFW_RELEASE)
+        keys[key] = false;
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
@@ -145,6 +151,8 @@ void init()
         std::cerr << "link program failure" << std::endl;
         std::cerr << infoLog << std::endl;
     }
+    glDeleteShader(vShader);
+    glDeleteShader(fShader);
 
     // for now just use it
     glUseProgram(program);
