@@ -63,6 +63,9 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    const GLFWvidmode *vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+    glfwSetWindowPos(window, (vidmode->width - WIDTH)/2, (vidmode->height - HEIGHT)/2);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
