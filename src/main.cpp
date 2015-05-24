@@ -42,8 +42,13 @@ int main() {
     if (!glfwInit()) {
         std::cout << "can't not init glfw" << std::endl;
     }
+#ifndef __APPLE__
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+#else
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+#endif
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     // for mac
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
