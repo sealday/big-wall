@@ -30,6 +30,7 @@ GLuint vaos[VAO_NUMBER], vbos[VBO_NUMBER];
 const int WIDTH = 800;
 const int HEIGHT = 600;
 bool keys[1024];
+GLFWwindow *window;
 
 GLint modelLoc, viewLoc, projLoc;
 
@@ -55,7 +56,7 @@ int main() {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
-    GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "opengl", NULL, NULL);
+    window = glfwCreateWindow(WIDTH, HEIGHT, "opengl", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -209,7 +210,9 @@ void init()
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.3f, 0.4f, 0.5f, 0.0f);
 
-    glViewport(0, 0, WIDTH, HEIGHT);
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glViewport(0, 0, width, height);
 
 
 }
