@@ -73,7 +73,9 @@ int main() {
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
+#ifndef __APPLE__
     glDebugMessageCallback(debug_callback, 0);
+#endif
 
     init();
 
