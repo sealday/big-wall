@@ -10,6 +10,8 @@
 
 void error_callback(int error, const char *description);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 
 enum VAO {
     MAIN,
@@ -62,6 +64,8 @@ int main() {
 
     // some callback
     glfwSetKeyCallback(window, key_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     init();
 
@@ -91,6 +95,16 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+
+}
+
+void mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+
 }
 
 
