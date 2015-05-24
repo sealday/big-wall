@@ -25,7 +25,10 @@ enum VBO {
 
 GLuint vaos[VAO_NUMBER], vbos[VBO_NUMBER];
 
+const int WIDTH = 800;
+const int HEIGHT = 600;
 
+GLint modelLoc, viewLoc, projLoc;
 
 void init();
 
@@ -43,7 +46,7 @@ int main() {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
 
-    GLFWwindow *window = glfwCreateWindow(800, 600, "opengl", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "opengl", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -70,7 +73,7 @@ int main() {
     init();
 
     while (!glfwWindowShouldClose(window)) {
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glBindVertexArray(vaos[MAIN]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -149,6 +152,17 @@ void init()
     GLint colorLoc = glGetUniformLocation(program, "useColor");
     glUniform3f(colorLoc, 0.9f, 0.8f, 0.2f);
 
+    modelLoc = glGetUniformLocation(program, "model");
+    viewLoc = glGetUniformLocation(program, "view");
+    projLoc = glGetUniformLocation(program, "projection");
+
+
+
+    glm::mat4 mat4;
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &mat4[0][0]);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &mat4[0][0]);
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &mat4[0][0]);
+
     GLfloat vertices[] = {
              0.0f,  0.5f,  0.0f,
             -0.5f, -0.5f,  0.0f,
@@ -168,6 +182,10 @@ void init()
 
     glBindVertexArray(0);
 
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.3f, 0.4f, 0.5f, 0.0f);
 
-    glClearColor(0.3f, 0.4f, 0.5f, 1.0f);
+    glViewport(0, 0, WIDTH, HEIGHT);
+
+
 }
