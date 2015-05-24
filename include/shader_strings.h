@@ -5,6 +5,31 @@
 #ifndef BIG_WALL_SHADER_STRINGS_H
 #define BIG_WALL_SHADER_STRINGS_H
 
+#define GLSL(src) "#version 330 core\n"#src
+
+namespace glsl {
+
+    const char *vShader = GLSL
+    (
+            layout(location = 0)
+            in vec3 position;
+            void main() {
+                gl_Position = vec4(position, 1.0);
+        }
+
+    );
+
+
+    const char *fShader = GLSL
+    (
+            uniform vec3 useColor;
+            out vec4 color;
+            void main() {
+                color = vec4(useColor, 1.0);
+            }
+    );
+}
+
 
 
 #endif //BIG_WALL_SHADER_STRINGS_H
