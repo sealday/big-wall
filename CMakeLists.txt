@@ -14,8 +14,11 @@ include_directories(include)
 include_directories(glm)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(SOURCE_FILES src/main.cpp)
+file(GLOB_RECURSE SOURCE_FILES "src/*")
+#set(SOURCE_FILES src/main.cpp)
 
+
+add_definitions(-Dwallpng="${PROJECT_SOURCE_DIR}/data/wall.png")
 
 add_executable(big_wall ${SOURCE_FILES})
 target_link_libraries(big_wall glfw ${GLFW_LIBRARIES})

@@ -4,6 +4,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include "SOIL.h"
+
 #include "camera.h"
 #include "shader_strings.h"
 
@@ -31,8 +33,20 @@ const int WIDTH = 800;
 const int HEIGHT = 600;
 bool keys[1024];
 GLFWwindow *window;
+GLuint program;
 
 GLint modelLoc, viewLoc, projLoc;
+
+// Camera
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+GLfloat lastX = 400, lastY = 300;
+bool firstMouse = true;
+
+GLfloat deltaTime = 0.0f;
+GLfloat lastFrame = 0.0f;
+
+void do_movement();
+
 
 void init();
 
@@ -55,6 +69,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     window = glfwCreateWindow(WIDTH, HEIGHT, "opengl", NULL, NULL);
     if (!window)
@@ -66,6 +81,7 @@ int main() {
     const GLFWvidmode *vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
     glfwSetWindowPos(window, (vidmode->width - WIDTH)/2, (vidmode->height - HEIGHT)/2);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
@@ -88,11 +104,43 @@ int main() {
 
     init();
 
+
+    GLuint wallTexture;
+    int width, height;
+    glGenTextures(1, &wallTexture);
+    glBindTexture(GL_TEXTURE_2D, wallTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned char *image = SOIL_load_image(wallpng, &width, &height, 0, SOIL_LOAD_RGB);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    SOIL_free_image_data(image);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, wallTexture);
+    glUniform1i(glGetUniformLocation(program, "texture1"), 0);
+
     while (!glfwWindowShouldClose(window)) {
+        // Set frame time
+        GLfloat currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        do_movement();
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glm::mat4 view(camera.GetViewMatrix());
+        glm::mat4 projection(glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.1f, 1000.0f));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+
         glBindVertexArray(vaos[MAIN]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
@@ -123,18 +171,44 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
-
+    camera.ProcessMouseScroll(yoffset);
 }
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 {
+    if (firstMouse)
+    {
+        lastX = ypos;
+        lastY = ypos;
+        firstMouse = false;
+    }
 
+    GLfloat xoffset = xpos - lastX;
+    GLfloat yoffset = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 void debug_callback(GLenum source, GLenum type, GLuint id,GLenum severity,
                     GLsizei length, const GLchar *msg, void *data )
 {
     std::cout << msg << std::endl;
+}
+
+void do_movement()
+{
+    // Camera controls
+    if (keys[GLFW_KEY_W])
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (keys[GLFW_KEY_S])
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (keys[GLFW_KEY_A])
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (keys[GLFW_KEY_D])
+        camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
 void init()
@@ -161,7 +235,7 @@ void init()
         std::cerr << infoLog << std::endl;
     }
 
-    GLuint program = glCreateProgram();
+    program = glCreateProgram();
     glAttachShader(program, vShader);
     glAttachShader(program, fShader);
     glLinkProgram(program);
@@ -184,17 +258,53 @@ void init()
     viewLoc = glGetUniformLocation(program, "view");
     projLoc = glGetUniformLocation(program, "projection");
 
-
-
     glm::mat4 mat4;
+//    mat4 = glm::rotate(mat4, 45.0f, glm::vec3(0.0f, 0.0f, 1.0f));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &mat4[0][0]);
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &mat4[0][0]);
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &mat4[0][0]);
+
 
     GLfloat vertices[] = {
-             0.0f,  0.5f,  0.0f,
-            -0.5f, -0.5f,  0.0f,
-             0.5f, -0.5f,  0.0f
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
 
     glGenVertexArrays(VAO_NUMBER, vaos);
@@ -206,7 +316,9 @@ void init()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(GLfloat)));
 
     glBindVertexArray(0);
 
