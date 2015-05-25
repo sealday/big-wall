@@ -38,7 +38,7 @@ GLuint program;
 GLint modelLoc, viewLoc, projLoc;
 
 // Camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 1.0f, 3.0f));
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
 
@@ -105,8 +105,9 @@ int main() {
     init();
 
 
-    GLuint wallTexture;
+    GLuint wallTexture, floorTexture;
     int width, height;
+    unsigned char *image;
     glGenTextures(1, &wallTexture);
     glBindTexture(GL_TEXTURE_2D, wallTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -114,15 +115,26 @@ int main() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    unsigned char *image = SOIL_load_image(wallpng, &width, &height, 0, SOIL_LOAD_RGB);
+    image = SOIL_load_image(WALL, &width, &height, 0, SOIL_LOAD_RGB);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
     glGenerateMipmap(GL_TEXTURE_2D);
     SOIL_free_image_data(image);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, wallTexture);
-    glUniform1i(glGetUniformLocation(program, "texture1"), 0);
+    glGenTextures(1, &floorTexture);
+    glBindTexture(GL_TEXTURE_2D, floorTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    image = SOIL_load_image(FLOOR, &width, &height, 0, SOIL_LOAD_RGB);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    SOIL_free_image_data(image);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
 
     while (!glfwWindowShouldClose(window)) {
         // Set frame time
@@ -139,18 +151,37 @@ int main() {
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 
-
-
         glBindVertexArray(vaos[MAIN]);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, wallTexture);
+        glUniform1i(glGetUniformLocation(program, "texture1"), 0);
+
         for (int j = 0; j < 4; j++)
-            for (int i = 0; i < 10; i++) {
+            for (int i = -10; i <= 10; i++) {
                 glm::mat4 model;
-                model = glm::translate(model, glm::vec3(1.0f * i, 1.0f * j, 0.0f));
+                model = glm::translate(model, glm::vec3(1.0f * i, 1.0f * j + 1, 0.0f));
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
 
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        glUniform1i(glGetUniformLocation(program, "texture1"), 0);
+
+        for (int i = -10; i <= 10; i++)
+            for (int j = -10; j <= 10; j++)
+            {
+                glm::mat4 model;
+                model = glm::translate(model, glm::vec3(1.0f * i, 0.0f, 1.0f * j));
+                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
+
         glBindVertexArray(0);
+
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
