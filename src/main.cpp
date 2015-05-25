@@ -139,8 +139,17 @@ int main() {
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 
+
+
         glBindVertexArray(vaos[MAIN]);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (int j = 0; j < 4; j++)
+            for (int i = 0; i < 10; i++) {
+                glm::mat4 model;
+                model = glm::translate(model, glm::vec3(1.0f * i, 1.0f * j, 0.0f));
+                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
@@ -258,11 +267,6 @@ void init()
     viewLoc = glGetUniformLocation(program, "view");
     projLoc = glGetUniformLocation(program, "projection");
 
-    glm::mat4 mat4;
-//    mat4 = glm::rotate(mat4, 45.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &mat4[0][0]);
-
-
     GLfloat vertices[] = {
             -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
             0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -318,7 +322,7 @@ void init()
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
 
     glBindVertexArray(0);
 
