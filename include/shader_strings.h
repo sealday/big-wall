@@ -36,6 +36,35 @@ namespace glsl {
                 color = texture(texture1, TexCoord);
             }
     );
+
+    const char *skyVShader = GLSL
+    (
+            layout(location = 0) in vec3 position;
+            out vec3 TexCoords;
+
+            uniform mat4 model;
+            uniform mat4 view;
+            uniform mat4 projection;
+
+            void main()
+            {
+                gl_Position = projection * view * model * vec4(position, 1.0);
+                TexCoords = position;
+            }
+    );
+
+    const char *skyFShader = GLSL
+    (
+            in vec3 TexCoords;
+            out vec4 color;
+
+            uniform samplerCube skybox;
+
+            void main()
+            {
+                color = texture(skybox, TexCoords);
+            }
+    );
 }
 
 

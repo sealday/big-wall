@@ -20,6 +20,7 @@ file(GLOB_RECURSE SOURCE_FILES "src/*")
 
 add_definitions(-DWALL="${PROJECT_SOURCE_DIR}/data/wall.jpg")
 add_definitions(-DFLOOR="${PROJECT_SOURCE_DIR}/data/floor.png")
+add_definitions(-DDATA="${PROJECT_SOURCE_DIR}/data/")
 
 add_executable(big_wall ${SOURCE_FILES})
 target_link_libraries(big_wall glfw ${GLFW_LIBRARIES})
