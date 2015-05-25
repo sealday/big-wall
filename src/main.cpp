@@ -1,6 +1,7 @@
 #include <iostream>
 
-#include <GL/glew.h>
+#include "glad/glad.h"
+#include "KHR/khrplatform.h"
 
 #include <GLFW/glfw3.h>
 
@@ -15,7 +16,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
-                    GLsizei length, const GLchar *msg, void *data);
+                    GLsizei length, const GLchar *msg, const void *data);
 
 enum VAO {
     MAIN,
@@ -85,13 +86,17 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
-    glewExperimental = GL_TRUE;
-    if (glewInit() != GLEW_OK)
-    {
-
-        std::cerr << "Failed to initialize GLEW" << std::endl;
+    if (!gladLoadGL()) {
+        std::cerr << "Failed to initialize GLAD" << std::endl;
         exit(EXIT_FAILURE);
     }
+//    glewExperimental = GL_TRUE;
+//    if (glewInit() != GLEW_OK)
+//    {
+//
+//        std::cerr << "Failed to initialize GLEW" << std::endl;
+//        exit(EXIT_FAILURE);
+//    }
 
 
     // some callback
@@ -233,7 +238,7 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 }
 
 void debug_callback(GLenum source, GLenum type, GLuint id,GLenum severity,
-                    GLsizei length, const GLchar *msg, void *data )
+                    GLsizei length, const GLchar *msg, const void *data )
 {
     std::cout << msg << std::endl;
 }
