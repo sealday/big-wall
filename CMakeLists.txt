@@ -18,12 +18,12 @@ set(GLEW_SOURCE
 set(GLEW_HEADERS
 )
 
-add_library(GLEW_190 STATIC
+add_library(GLEW_1_12_0 STATIC
 	${GLEW_SOURCE}
 	${GLEW_INCLUDE}
 )
 
-target_link_libraries(GLEW_190
+target_link_libraries(GLEW_1_12_0
 	${OPENGL_LIBRARY}
 	${EXTRA_LIBS}
 )
@@ -44,5 +44,5 @@ add_definitions(-DFLOOR="${PROJECT_SOURCE_DIR}/data/floor.png")
 add_executable(big_wall ${SOURCE_FILES})
 target_link_libraries(big_wall glfw ${GLFW_LIBRARIES})
 target_link_libraries(big_wall ${GLEW_LIBRARIES})
-target_link_libraries(big_wall GLEW_190)
+target_link_libraries(big_wall GLEW_1_12_0)
 #target_link_libraries(big_wall glew)
