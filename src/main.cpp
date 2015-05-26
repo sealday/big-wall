@@ -106,14 +106,6 @@ int main() {
         std::cerr << "Failed to initialize GLAD" << std::endl;
         exit(EXIT_FAILURE);
     }
-//    glewExperimental = GL_TRUE;
-//    if (glewInit() != GLEW_OK)
-//    {
-//
-//        std::cerr << "Failed to initialize GLEW" << std::endl;
-//        exit(EXIT_FAILURE);
-//    }
-
 
     // some callback
     glfwSetKeyCallback(window, key_callback);
