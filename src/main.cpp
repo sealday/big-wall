@@ -23,11 +23,7 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 GLuint loadCubemap(std::vector<const GLchar*> faces);
 
 
-void
-#ifdef _WIN32
-__stdcall
-#endif
-debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
+void APIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
                     GLsizei length, const GLchar *msg, const void *data);
 
 enum VAO {
@@ -268,11 +264,7 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void
-#ifdef _WIN32
-__stdcall
-#endif
-debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
+void APIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
                     GLsizei length, const GLchar *msg, const void *data)
 {
     std::cout << msg << std::endl;
