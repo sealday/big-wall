@@ -15,6 +15,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+struct Dot {
+    float x;
+    float z;
+};
 
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
@@ -88,6 +92,34 @@ public:
             this->Position -= this->Right * velocity;
         if (direction == RIGHT)
             this->Position += this->Right * velocity;
+
+        float border = 10.5;
+
+        if (this->Position.x < -border)
+            this->Position.x = -border;
+        if (this->Position.z < -border)
+            this->Position.z = -border;
+        if (this->Position.x > border)
+            this->Position.x = border;
+        if (this->Position.z > border)
+            this->Position.z = border;
+
+        float gridSize = 1.0f;
+        for (auto &dot : dots) {
+            if (this->Position.x > dot.x - 0.5 && this->Position.z < dot.z + 0.5 &&
+                this->Position.x < dot.x - 0.5 + gridSize && this->Position.z > dot.z + 0.5 - gridSize) {
+                if (direction == FORWARD)
+                    this->Position -= this->Front * velocity;
+                if (direction == BACKWARD)
+                    this->Position += this->Front * velocity;
+                if (direction == LEFT)
+                    this->Position += this->Right * velocity;
+                if (direction == RIGHT)
+                    this->Position -= this->Right * velocity;
+            }
+        }
+
+        std::cout << "x: " << this->Position.x << "  z: " << this->Position.z << std::endl;
     }
 
     // Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -123,8 +155,13 @@ public:
             this->Zoom = 45.0f;
     }
 
+    void setDots(const std::vector<Dot> &dots) {
+        this->dots = dots;
+    }
+
 private:
     // Calculates the front vector from the Camera's (updated) Eular Angles
+    std::vector<Dot> dots;
     void updateCameraVectors()
     {
         // Calculate the new Front vector
@@ -138,4 +175,5 @@ private:
         this->Up    = glm::normalize(glm::cross(this->Right, this->Front));
     }
 };
+
 #endif //BIG_WALL_CAMERA_H

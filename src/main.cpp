@@ -64,8 +64,16 @@ void do_movement();
 void init();
 
 
-int main() {
+std::vector<Dot> dots;
 
+int main() {
+    dots.push_back({3, 3});
+    dots.push_back({2, 2});
+    dots.push_back({4, 2});
+    dots.push_back({5, 2});
+    dots.push_back({-2, 2});
+    dots.push_back({-2, 5});
+    camera.setDots(dots);
     glfwSetErrorCallback(error_callback);
     if (!glfwInit()) {
         std::cout << "can't not init glfw" << std::endl;
@@ -156,7 +164,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 view(camera.GetViewMatrix());
-        glm::mat4 projection(glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.1f, 1000.0f));
+        glm::mat4 projection(glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.1f, 100.0f));
 
 
         glDepthMask(GL_FALSE);
@@ -189,14 +197,14 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, wallTexture);
         glUniform1i(glGetUniformLocation(program, "texture1"), 0);
 
-        for (int j = 0; j < 4; j++)
-            for (int i = -10; i <= 10; i++) {
+        for (int j = 0; j < 4; j++) {
+            for (const auto &dot : dots) {
                 glm::mat4 model;
-                model = glm::translate(model, glm::vec3(1.0f * i, 1.0f * j + 1, 0.0f));
+                model = glm::translate(model, glm::vec3(dot.x, 1.0f * j + 1, dot.z));
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
+        }
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, floorTexture);
@@ -261,7 +269,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos)
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    // stop fly
+    camera.ProcessMouseMovement(xoffset, 0);
 }
 
 void APIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
