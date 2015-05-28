@@ -174,7 +174,7 @@ int main() {
         if (!thirdPerson) {
             view = camera.GetViewMatrix();
         } else {
-            view = glm::lookAt(glm::vec3(15.0f, 10.0f, 15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            view = glm::lookAt(camera.Position - camera.Front - camera.Front + glm::vec3(0.0f, 3.0f, 0.0f), camera.Position + glm::vec3(0.0f, 1.7f, 0.0f), camera.Up);
         }
         glm::mat4 projection(glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.2f, 100.0f));
 
@@ -186,10 +186,13 @@ int main() {
             view = glm::translate(view, glm::vec3(-0.7f, 0.7f, 0.0f));
             view = glm::scale(view, glm::vec3(0.5f, 0.5f, 0.5f));
             viewLoc = glGetUniformLocation(mapProgram, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+        }
+
+        {
             GLint colorLoc = glGetUniformLocation(mapProgram, "inColor");
             glm::vec3 color(1.0f, 0.0f, 0.0f);
             glUniform3fv(colorLoc, 1, &color[0]);
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
             glm::mat4 model;
             model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
             model = glm::translate(model, glm::vec3(camera.Position.x, -camera.Position.z,0.0f));
@@ -249,9 +252,12 @@ int main() {
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
 
+        }
+        for (int j = 0; j < 2; j++) {
             {
                 glm::mat4 model;
                 model = glm::translate(model, glm::vec3(camera.Position.x, 1.0f * j + 1, camera.Position.z));
+                model = glm::rotate(model, glm::radians(camera.Yaw), glm::vec3(0.0f, -1.0f, 0.0f));
                 model = glm::scale(model, glm::vec3(0.25f, 1.0f, 0.25f));
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
