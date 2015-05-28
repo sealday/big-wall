@@ -66,7 +66,7 @@ GLuint cubemapTexture;
 
 GLint modelLoc, viewLoc, projLoc;
 
-bool thirdPerson = false;
+bool thirdPerson = true;
 bool isStand = true;
 
 // Camera
