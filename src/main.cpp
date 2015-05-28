@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "glad/glad.h"
 #include "KHR/khrplatform.h"
@@ -9,8 +10,9 @@
 
 #include "camera.h"
 #include "shader_strings.h"
+#include "MD2.h"
 
-#define data(name) DATA#name
+#define resource(name) DATA#name
 
 #include <vector>
 
@@ -30,6 +32,7 @@ enum VAO {
     MAIN,
     SKY,
     MAP,
+    OBJ,
     VAO_NUMBER
 };
 
@@ -37,10 +40,20 @@ enum VBO {
     TRIANGLE,
     BOX,
     DOT,
+    OBJ_VBO,
+    OBJ_UV_VBO,
     VBO_NUMBER
 };
 
 GLuint vaos[VAO_NUMBER], vbos[VBO_NUMBER];
+
+
+std::vector<Frame> frames;
+std::vector<std::vector<TriangleVertex>> triangleVertices;
+std::vector<MeshUV> uvs;
+std::vector<Vertex> vertices;
+std::vector<std::vector<Vertex>> frameVertices;
+std::vector<VertexUV> sts;
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -54,6 +67,7 @@ GLuint cubemapTexture;
 GLint modelLoc, viewLoc, projLoc;
 
 bool thirdPerson = false;
+bool isStand = true;
 
 // Camera
 Camera camera(glm::vec3(0.0f, 1.0f, 10.0f));
@@ -118,6 +132,80 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    // model load code ...
+    std::ifstream md2File(resource(tris.md2), std::ios_base::binary);
+    if (!md2File) {
+        std::cerr << "load model failure" << std::endl;
+        exit(-1);
+    }
+
+    MD2 md2;
+    md2File.read(reinterpret_cast<char *>(&md2), sizeof(md2));
+    std::string magic(reinterpret_cast<char *>(&md2.magic), 4);
+    if (magic != "IDP2") {
+        std::cerr << "not MD2 model" << std::endl;
+        exit(-1);
+    }
+
+    md2File.seekg(md2.offsetFrames, md2File.beg);
+    for (int i = 0; i < md2.numFrames; i++) {
+        Frame frame;
+        md2File.read(reinterpret_cast<char *>(&frame), sizeof(frame));
+        frames.push_back(frame);
+
+        std::vector<TriangleVertex> vertices;
+        vertices.push_back(frame.vertices[0]);
+        for (int i = 1; i < md2.numVertices; i++) {
+            TriangleVertex triangleVertex;
+            md2File.read(reinterpret_cast<char *>(&triangleVertex), sizeof(triangleVertex));
+            vertices.push_back(triangleVertex);
+        }
+        triangleVertices.push_back(vertices);
+    }
+
+    md2File.seekg(md2.offsetTexCoords, md2File.beg);
+    for (size_t i = 0; i < md2.numTexCoords; i++) {
+        MeshUV meshUV;
+        md2File.read(reinterpret_cast<char *>(&meshUV), sizeof(meshUV));
+        uvs.push_back(meshUV);
+    }
+
+    for (size_t p = 0; p < frames.size(); p++) {
+        for (size_t i = 0; i < triangleVertices[p].size(); i++) {
+            Vertex vertex;
+            for (size_t j = 0; j < 3; j++) {
+                vertex.coords[j] = triangleVertices[p][i].vertex[j] * frames[p].scale[j] +
+                                   frames[p].translate[j];
+            }
+            vertices.push_back(vertex);
+        }
+
+
+        std::vector<Vertex> frameVertex;
+        md2File.seekg(md2.offsetTriangles, md2File.beg);
+        for (size_t i = 0; i < md2.numTriangles; i++) {
+            Mesh mesh;
+            md2File.read(reinterpret_cast<char *>(&mesh), sizeof(mesh));
+            for (size_t k = 0; k < 3; k++) {
+                frameVertex.push_back(vertices[mesh.meshIndex[k]]);
+
+                VertexUV uv;
+                uv.st[0] = uvs[mesh.stIndex[k]].s / (float) md2.skinWidth;
+                uv.st[1] = uvs[mesh.stIndex[k]].t / (float) md2.skinWidth;
+                sts.push_back(uv);
+            }
+        }
+        vertices.clear();
+        frameVertices.push_back(frameVertex);
+    }
+
+    for (size_t i = 0; i < frames.size(); i++) {
+        std::cout << i << " " << frames[i].name << std::endl;
+    }
+
+    std::cout << frameVertices[0][100].coords[0] << std::endl;
+    std::cout << frameVertices[45][100].coords[0] << std::endl;
+    // end model load
     // some callback
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback(window, scroll_callback);
@@ -128,6 +216,107 @@ int main() {
 
     init();
 
+    int texWidth, texHeight;
+    unsigned char *texture;
+    GLuint texture_obj;
+
+    FILE* texFile = fopen(resource(red.pcx),"rb");
+
+    if (texFile) {
+        int imgWidth, imgHeight, texFileLen, imgBufferPtr, i;
+        pcxHeader *pcxPtr;
+        unsigned char *imgBuffer, *texBuffer, *pcxBufferPtr, *paletteBuffer;
+
+        /* find length of file */
+        fseek(texFile, 0, SEEK_END);
+        texFileLen = ftell(texFile);
+        fseek(texFile, 0, SEEK_SET);
+
+        /* read in file */
+        texBuffer = (unsigned char *) malloc(texFileLen + 1);
+        fread(texBuffer, sizeof(char), texFileLen, texFile);
+
+        /* get the image dimensions */
+        pcxPtr = (pcxHeader *) texBuffer;
+        imgWidth = pcxPtr->size[0] - pcxPtr->offset[0] + 1;
+        imgHeight = pcxPtr->size[1] - pcxPtr->offset[1] + 1;
+
+        /* image starts at 128 from the beginning of the buffer */
+        imgBuffer = (unsigned char *) malloc(imgWidth * imgHeight);
+        imgBufferPtr = 0;
+        pcxBufferPtr = &texBuffer[128];
+        /* decode the pcx image */
+        while (imgBufferPtr < (imgWidth * imgHeight)) {
+            if (*pcxBufferPtr > 0xbf) {
+                int repeat = *pcxBufferPtr++ & 0x3f;
+                for (i = 0; i < repeat; i++)
+                    imgBuffer[imgBufferPtr++] = *pcxBufferPtr;
+            } else {
+                imgBuffer[imgBufferPtr++] = *pcxBufferPtr;
+            }
+            pcxBufferPtr++;
+        }
+        /* read in the image palette */
+        paletteBuffer = (unsigned char *) malloc(768);
+        for (i = 0; i < 768; i++)
+            paletteBuffer[i] = texBuffer[texFileLen - 768 + i];
+
+        /* find the nearest greater power of 2 for each dimension */
+        {
+            int imageWidth = imgWidth, imageHeight = imgHeight;
+            i = 0;
+            while (imageWidth) {
+                imageWidth /= 2;
+                i++;
+            }
+            texWidth = pow(2, (double) i);
+            i = 0;
+            while (imageHeight) {
+                imageHeight /= 2;
+                i++;
+            }
+            texHeight = pow(2, (double) i);
+        }
+        /* now create the OpenGL texture */
+        {
+            int i, j;
+            texture = (unsigned char *) malloc(texWidth * texHeight * 3);
+            for (j = 0; j < imgHeight; j++) {
+                for (i = 0; i < imgWidth; i++) {
+                    texture[3 * (j * texWidth + i) + 0]
+                            = paletteBuffer[3 * imgBuffer[j * imgWidth + i] + 0];
+                    texture[3 * (j * texWidth + i) + 1]
+                            = paletteBuffer[3 * imgBuffer[j * imgWidth + i] + 1];
+                    texture[3 * (j * texWidth + i) + 2]
+                            = paletteBuffer[3 * imgBuffer[j * imgWidth + i] + 2];
+                }
+            }
+        }
+        free(paletteBuffer);
+        free(imgBuffer);
+    }
+    glGenTextures( 1, &texture_obj);
+    glBindTexture( GL_TEXTURE_2D, texture_obj);
+
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, texWidth,
+                  texHeight, 0, GL_RGB,
+                  GL_UNSIGNED_BYTE, texture );
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
+    glBindVertexArray(vaos[OBJ]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[OBJ_UV_VBO]);
+    glBufferData(GL_ARRAY_BUFFER, sts.size() * sizeof(VertexUV), sts.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindVertexArray(0);
 
     GLuint wallTexture, floorTexture;
     int width, height;
@@ -159,12 +348,15 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, 0);
 
 
+    int f = 0;
+    float d_time = 0;
 
     while (!glfwWindowShouldClose(window)) {
         // Set frame time
         GLfloat currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+        d_time += deltaTime;
 
         do_movement();
 
@@ -232,17 +424,44 @@ int main() {
 
 
         glUseProgram(program);
-        modelLoc = glGetUniformLocation(skyProgram, "model");
+        modelLoc = glGetUniformLocation(program, "model");
         viewLoc = glGetUniformLocation(program, "view");
         projLoc = glGetUniformLocation(program, "projection");
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 
+        {
+            glBindVertexArray(vaos[OBJ]);
+            glm::mat4 model;
+            model = glm::translate(model, glm::vec3(camera.Position.x, 0.0f, camera.Position.z));
+            model = glm::translate(model, glm::vec3(0.0f, 1.3f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.03f, 0.03f, 0.03f));
+            model = glm::rotate(model, -90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+            model = glm::rotate(model, -90.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+            glBindTexture(GL_TEXTURE_2D, texture_obj);
+            if (isStand) {
+                if (f > 40) f = 0;
+            } else {
+                if (f > 45 || f < 40) f = 40;
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, vbos[OBJ_VBO]);
+            glBufferData(GL_ARRAY_BUFFER, frameVertices[f].size() * sizeof(Vertex), frameVertices[f].data(),
+                         GL_STATIC_DRAW);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glDrawArrays(GL_TRIANGLES, 0, frameVertices[f].size());
+            if (d_time > 0.1) {
+                f++;
+                d_time = 0;
+            }
+            glBindVertexArray(0);
+        }
+
         glBindVertexArray(vaos[MAIN]);
 
-        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, wallTexture);
-        glUniform1i(glGetUniformLocation(program, "texture1"), 0);
 
         for (int j = 0; j < 4; j++) {
             for (const auto &dot : dots) {
@@ -253,20 +472,18 @@ int main() {
             }
 
         }
-        for (int j = 0; j < 2; j++) {
-            {
-                glm::mat4 model;
-                model = glm::translate(model, glm::vec3(camera.Position.x, 1.0f * j + 1, camera.Position.z));
-                model = glm::rotate(model, glm::radians(camera.Yaw), glm::vec3(0.0f, -1.0f, 0.0f));
-                model = glm::scale(model, glm::vec3(0.25f, 1.0f, 0.25f));
-                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-            }
-        }
+//        for (int j = 0; j < 2; j++) {
+//            {
+//                glm::mat4 model;
+//                model = glm::translate(model, glm::vec3(camera.Position.x, 1.0f * j + 1, camera.Position.z));
+//                model = glm::rotate(model, glm::radians(camera.Yaw), glm::vec3(0.0f, -1.0f, 0.0f));
+//                model = glm::scale(model, glm::vec3(0.25f, 1.0f, 0.25f));
+//                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+//                glDrawArrays(GL_TRIANGLES, 0, 36);
+//            }
+//        }
 
-        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, floorTexture);
-        glUniform1i(glGetUniformLocation(program, "texture1"), 0);
 
         for (int i = -10; i <= 10; i++)
             for (int j = -10; j <= 10; j++)
@@ -278,9 +495,6 @@ int main() {
             }
 
         glBindVertexArray(0);
-
-
-
 
 
         glfwSwapBuffers(window);
@@ -452,12 +666,12 @@ void init()
 
 
     std::vector<const GLchar*> faces;
-    faces.push_back(data(right.jpg));
-    faces.push_back(data(left.jpg));
-    faces.push_back(data(top.jpg));
-    faces.push_back(data(bottom.jpg));
-    faces.push_back(data(back.jpg));
-    faces.push_back(data(front.jpg));
+    faces.push_back(resource(right.jpg));
+    faces.push_back(resource(left.jpg));
+    faces.push_back(resource(top.jpg));
+    faces.push_back(resource(bottom.jpg));
+    faces.push_back(resource(back.jpg));
+    faces.push_back(resource(front.jpg));
     cubemapTexture = loadCubemap(faces);
 
     GLfloat skyboxVertices[] = {

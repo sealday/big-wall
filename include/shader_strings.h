@@ -19,7 +19,7 @@ namespace glsl {
             out vec2 TexCoord;
             void main() {
                 gl_Position = projection * view * model * vec4(position, 1.0);
-                TexCoord = vec2(texCoord.x, 1.0 - texCoord.y);
+                TexCoord = texCoord;
             }
 
     );
@@ -28,7 +28,6 @@ namespace glsl {
     const char *fShader = GLSL
     (
             in vec2 TexCoord;
-            uniform vec3 useColor;
             out vec4 color;
 
             uniform sampler2D texture1;
