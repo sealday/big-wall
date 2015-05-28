@@ -173,10 +173,12 @@ int main() {
     for (size_t p = 0; p < frames.size(); p++) {
         for (size_t i = 0; i < triangleVertices[p].size(); i++) {
             Vertex vertex;
-            for (size_t j = 0; j < 3; j++) {
-                vertex.coords[j] = triangleVertices[p][i].vertex[j] * frames[p].scale[j] +
-                                   frames[p].translate[j];
-            }
+            vertex.coords[0] = triangleVertices[p][i].vertex[0] * frames[p].scale[0] +
+                                   frames[p].translate[0];
+            vertex.coords[1] = triangleVertices[p][i].vertex[2] * frames[p].scale[2] +
+                               frames[p].translate[2];
+            vertex.coords[2] = triangleVertices[p][i].vertex[1] * frames[p].scale[1] +
+                               frames[p].translate[1];
             vertices.push_back(vertex);
         }
 
@@ -436,12 +438,10 @@ int main() {
             model = glm::translate(model, glm::vec3(camera.Position.x, 0.0f, camera.Position.z));
             model = glm::translate(model, glm::vec3(0.0f, 1.3f, 0.0f));
             model = glm::scale(model, glm::vec3(0.03f, 0.03f, 0.03f));
-            model = glm::rotate(model, -90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::rotate(model, -90.0f, glm::vec3(0.0f, 0.0f, 1.0f));
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
             glBindTexture(GL_TEXTURE_2D, texture_obj);
             if (isStand) {
-                if (f > 40) f = 0;
+                if (f > 39) f = 0;
             } else {
                 if (f > 45 || f < 40) f = 40;
             }
