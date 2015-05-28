@@ -105,9 +105,11 @@ public:
             this->Position.z = border;
 
         float gridSize = 1.0f;
+        float offset = 0.75f;
+        float ioffset = 1 - offset;
         for (auto &dot : dots) {
-            if (this->Position.x > dot.x - 0.5 && this->Position.z < dot.z + 0.5 &&
-                this->Position.x < dot.x - 0.5 + gridSize && this->Position.z > dot.z + 0.5 - gridSize) {
+            if (this->Position.x > dot.x - offset && this->Position.z < dot.z + offset &&
+                this->Position.x < dot.x - ioffset + gridSize && this->Position.z > dot.z + ioffset - gridSize) {
                 if (direction == FORWARD)
                     this->Position -= this->Front * velocity;
                 if (direction == BACKWARD)

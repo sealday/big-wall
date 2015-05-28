@@ -65,6 +65,28 @@ namespace glsl {
                 color = texture(skybox, TexCoords);
             }
     );
+
+    const char *mapVShader = GLSL
+    (
+            layout(location = 0) in vec3 position;
+            uniform mat4 model;
+            uniform mat4 view;
+
+            void main()
+            {
+                gl_Position = view * model * vec4(position, 1.0);
+            }
+    );
+
+    const char *mapFShader = GLSL
+    (
+            uniform vec3 inColor;
+            out vec4 color;
+            void main()
+            {
+                color = vec4(inColor, 0.3);
+            }
+    );
 }
 
 

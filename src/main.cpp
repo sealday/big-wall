@@ -29,12 +29,14 @@ void APIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLenum sever
 enum VAO {
     MAIN,
     SKY,
+    MAP,
     VAO_NUMBER
 };
 
 enum VBO {
     TRIANGLE,
     BOX,
+    DOT,
     VBO_NUMBER
 };
 
@@ -46,12 +48,15 @@ bool keys[1024];
 GLFWwindow *window;
 GLuint program;
 GLuint skyProgram;
+GLuint mapProgram;
 GLuint cubemapTexture;
 
 GLint modelLoc, viewLoc, projLoc;
 
+bool thirdPerson = false;
+
 // Camera
-Camera camera(glm::vec3(0.0f, 1.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 1.0f, 10.0f));
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
 
@@ -71,8 +76,10 @@ int main() {
     dots.push_back({2, 2});
     dots.push_back({4, 2});
     dots.push_back({5, 2});
-    dots.push_back({-2, 2});
-    dots.push_back({-2, 5});
+    dots.push_back({-10, 10});
+    dots.push_back({10, 10});
+    dots.push_back({10, -10});
+    dots.push_back({-10, -10});
     camera.setDots(dots);
     glfwSetErrorCallback(error_callback);
     if (!glfwInit()) {
@@ -163,9 +170,46 @@ int main() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 view(camera.GetViewMatrix());
-        glm::mat4 projection(glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.1f, 100.0f));
+        glm::mat4 view;
+        if (!thirdPerson) {
+            view = camera.GetViewMatrix();
+        } else {
+            view = glm::lookAt(glm::vec3(15.0f, 10.0f, 15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+        glm::mat4 projection(glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.2f, 100.0f));
 
+        glUseProgram(mapProgram);
+        glBindVertexArray(vaos[MAP]);
+
+        {
+            glm::mat4 view;
+            view = glm::translate(view, glm::vec3(-0.7f, 0.7f, 0.0f));
+            view = glm::scale(view, glm::vec3(0.5f, 0.5f, 0.5f));
+            viewLoc = glGetUniformLocation(mapProgram, "view");
+            GLint colorLoc = glGetUniformLocation(mapProgram, "inColor");
+            glm::vec3 color(1.0f, 0.0f, 0.0f);
+            glUniform3fv(colorLoc, 1, &color[0]);
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+            glm::mat4 model;
+            model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
+            model = glm::translate(model, glm::vec3(camera.Position.x, -camera.Position.z,0.0f));
+            modelLoc = glGetUniformLocation(mapProgram, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+        for (const auto& dot : dots) {
+            GLint colorLoc = glGetUniformLocation(mapProgram, "inColor");
+            glm::vec3 color(0.3f, 0.8f, 0.9f);
+            glUniform3fv(colorLoc, 1, &color[0]);
+            glm::mat4 model;
+            model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
+            model = glm::translate(model, glm::vec3(dot.x, -dot.z,0.0f));
+            modelLoc = glGetUniformLocation(mapProgram, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
+        glBindVertexArray(0);
 
         glDepthMask(GL_FALSE);
         glUseProgram(skyProgram);
@@ -204,6 +248,14 @@ int main() {
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
+
+            {
+                glm::mat4 model;
+                model = glm::translate(model, glm::vec3(camera.Position.x, 1.0f * j + 1, camera.Position.z));
+                model = glm::scale(model, glm::vec3(0.25f, 1.0f, 0.25f));
+                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
         }
 
         glActiveTexture(GL_TEXTURE0);
@@ -220,6 +272,8 @@ int main() {
             }
 
         glBindVertexArray(0);
+
+
 
 
 
@@ -247,6 +301,10 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         keys[key] = true;
     else if (action == GLFW_RELEASE)
         keys[key] = false;
+
+    if (action == GLFW_PRESS && key == GLFW_KEY_P) {
+        thirdPerson = !thirdPerson;
+    }
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
@@ -465,6 +523,38 @@ void init()
 
     glBindVertexArray(0);
 
+    mapProgram = glCreateProgram();
+    GLuint mapVShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint mapFShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(mapVShader, 1, &glsl::mapVShader, NULL);
+    glShaderSource(mapFShader, 1, &glsl::mapFShader, NULL);
+    glCompileShader(mapVShader);
+    glCompileShader(mapFShader);
+    glAttachShader(mapProgram, mapVShader);
+    glAttachShader(mapProgram, mapFShader);
+    glLinkProgram(mapProgram);
+    glDeleteShader(mapVShader);
+    glDeleteShader(mapFShader);
+
+    GLfloat mapVertices[] = {
+            -0.5f, 0.5f, 0.0f,
+            0.5f, 0.5f, 0.0f,
+            -0.5f, -0.5f, 0.0f,
+
+            -0.5f, -0.5f, 0.0f,
+            0.5f, 0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f
+    };
+
+    glBindVertexArray(vaos[MAP]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[DOT]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mapVertices), mapVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 0, 0);
+
+    glBindVertexArray(0);
 }
 
 GLuint loadCubemap(std::vector<const GLchar*> faces)
