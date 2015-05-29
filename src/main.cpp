@@ -64,13 +64,12 @@ GLuint skyProgram;
 GLuint mapProgram;
 GLuint cubemapTexture;
 
-GLint modelLoc, viewLoc, projLoc;
-
 bool thirdPerson = true;
 bool isStand = true;
+GLint modelLoc, viewLoc, projLoc;
 
 // Camera
-Camera camera(glm::vec3(0.0f, 1.0f, 10.0f));
+Camera camera(glm::vec3(0.0f, 2.2f, 10.0f));
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
 
@@ -88,6 +87,7 @@ std::vector<Dot> dots;
 int main() {
     dots.push_back({3, 3});
     dots.push_back({2, 2});
+	dots.push_back({ 3, 3 });
     dots.push_back({4, 2});
     dots.push_back({5, 2});
     dots.push_back({-10, 10});
@@ -368,7 +368,7 @@ int main() {
         if (!thirdPerson) {
             view = camera.GetViewMatrix();
         } else {
-            view = glm::lookAt(camera.Position - camera.Front - camera.Front + glm::vec3(0.0f, 3.0f, 0.0f), camera.Position + glm::vec3(0.0f, 1.7f, 0.0f), camera.Up);
+			view = glm::lookAt(camera.Position - camera.Front - camera.Front - camera.Front + glm::vec3(0.0f, 3.0f, 0.0f), camera.Position + glm::vec3(0.0f, 1.0f, 0.0f), camera.Up);
         }
         glm::mat4 projection(glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.2f, 100.0f));
 
@@ -437,14 +437,18 @@ int main() {
             glm::mat4 model;
             model = glm::translate(model, glm::vec3(camera.Position.x, 0.0f, camera.Position.z));
             model = glm::translate(model, glm::vec3(0.0f, 1.3f, 0.0f));
+			model = glm::rotate(model, glm::radians(camera.Yaw), glm::vec3(0.0f, -1.0f, 0.0f));
             model = glm::scale(model, glm::vec3(0.03f, 0.03f, 0.03f));
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
             glBindTexture(GL_TEXTURE_2D, texture_obj);
-            if (isStand) {
-                if (f > 39) f = 0;
-            } else {
-                if (f > 45 || f < 40) f = 40;
-            }
+			if (isStand) {
+				if (f > 39) f = 0;
+			}
+			else
+			{
+				if (f > 45 || f < 40) f = 40;
+			}
+			
             glBindBuffer(GL_ARRAY_BUFFER, vbos[OBJ_VBO]);
             glBufferData(GL_ARRAY_BUFFER, frameVertices[f].size() * sizeof(Vertex), frameVertices[f].data(),
                          GL_STATIC_DRAW);
@@ -452,7 +456,7 @@ int main() {
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
             glDrawArrays(GL_TRIANGLES, 0, frameVertices[f].size());
-            if (d_time > 0.1) {
+            if (d_time > 0.15) {
                 f++;
                 d_time = 0;
             }
@@ -470,21 +474,8 @@ int main() {
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
-
         }
-//        for (int j = 0; j < 2; j++) {
-//            {
-//                glm::mat4 model;
-//                model = glm::translate(model, glm::vec3(camera.Position.x, 1.0f * j + 1, camera.Position.z));
-//                model = glm::rotate(model, glm::radians(camera.Yaw), glm::vec3(0.0f, -1.0f, 0.0f));
-//                model = glm::scale(model, glm::vec3(0.25f, 1.0f, 0.25f));
-//                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-//                glDrawArrays(GL_TRIANGLES, 0, 36);
-//            }
-//        }
-
         glBindTexture(GL_TEXTURE_2D, floorTexture);
-
         for (int i = -10; i <= 10; i++)
             for (int j = -10; j <= 10; j++)
             {
@@ -493,17 +484,12 @@ int main() {
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
-
         glBindVertexArray(0);
-
-
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
     glfwDestroyWindow(window);
     glfwTerminate();
-
     return 0;
 }
 
@@ -517,14 +503,48 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
 
-    if (action == GLFW_PRESS)
-        keys[key] = true;
-    else if (action == GLFW_RELEASE)
-        keys[key] = false;
-
+	if (action == GLFW_PRESS&&key==GLFW_KEY_W)
+        {
+		isStand = !isStand;
+		keys[key] = true;
+		}
+	else if (action == GLFW_RELEASE&&key == GLFW_KEY_W)
+		{
+		isStand = !isStand;
+		keys[key] = false;
+		}
+	if (action == GLFW_PRESS&&key == GLFW_KEY_A)
+	{
+		isStand = !isStand;
+		keys[key] = true;
+	}
+	else if (action == GLFW_RELEASE&&key == GLFW_KEY_A)
+	{
+		isStand = !isStand;
+		keys[key] = false;
+	}if (action == GLFW_PRESS&&key == GLFW_KEY_S)
+	{
+		isStand = !isStand;
+		keys[key] = true;
+	}
+	else if (action == GLFW_RELEASE&&key == GLFW_KEY_S)
+	{
+		isStand = !isStand;
+		keys[key] = false;
+	}if (action == GLFW_PRESS&&key == GLFW_KEY_D)
+	{
+		isStand = !isStand;
+		keys[key] = true;
+	}
+	else if (action == GLFW_RELEASE&&key == GLFW_KEY_D)
+	{
+		isStand = !isStand;
+		keys[key] = false;
+	}
     if (action == GLFW_PRESS && key == GLFW_KEY_P) {
         thirdPerson = !thirdPerson;
     }
+	
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
@@ -559,15 +579,16 @@ void APIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLenum sever
 
 void do_movement()
 {
-    // Camera controls
-    if (keys[GLFW_KEY_W])
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (keys[GLFW_KEY_S])
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (keys[GLFW_KEY_A])
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (keys[GLFW_KEY_D])
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+	
+	// key controls
+	if (keys[GLFW_KEY_W])
+		camera.ProcessKeyboard(FORWARD, deltaTime);
+	if (keys[GLFW_KEY_S])
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
+	if (keys[GLFW_KEY_A])
+		camera.ProcessKeyboard(LEFT, deltaTime);
+	if (keys[GLFW_KEY_D])
+		camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
 void init()
