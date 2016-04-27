@@ -3,9 +3,7 @@
 
 #include "glad/glad.h"
 #include "KHR/khrplatform.h"
-
 #include <GLFW/glfw3.h>
-
 #include "SOIL.h"
 
 #include "camera.h"
@@ -620,6 +618,7 @@ void init()
     projLoc = glGetUniformLocation(program, "projection");
 
     GLfloat vertices[] = {
+			//vertices             //texture
             -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
             0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
